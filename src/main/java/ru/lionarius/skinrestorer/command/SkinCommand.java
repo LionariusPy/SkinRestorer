@@ -33,7 +33,7 @@ public class SkinCommand {
     private static int setSkin(ServerCommandSource source, Collection<GameProfile> players, String skin_owner, boolean flag) {
         players.forEach(player -> {
             try {
-                SkinRestorer.configManager.addPlayerSkin(player.getId(), WebUtils.getSkin(WebUtils.getUUID(skin_owner)));
+                SkinRestorer.configManager.updatePlayerSkin(player.getId(), WebUtils.getSkin(WebUtils.getUUID(skin_owner)));
 
                 if (!flag)
                     SkinRestorer.PLAYER_MANAGER.getPlayer(player.getId()).sendMessage(

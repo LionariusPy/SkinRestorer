@@ -10,7 +10,7 @@ import net.minecraft.server.PlayerManager;
 public class SkinRestorer implements DedicatedServerModInitializer {
 
     public static PlayerManager PLAYER_MANAGER;
-    public final static ConfigManager configManager = new ConfigManager(FabricLoader.getInstance().getConfigDirectory().toPath().resolve("skinrestorer\\skins.json").toFile());
+    public final static ConfigManager configManager = new ConfigManager(FabricLoader.getInstance().getConfigDirectory().toPath().resolve("skinrestorer"));
 
     @Override
     public void onInitializeServer() {

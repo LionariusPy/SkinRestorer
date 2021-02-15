@@ -4,39 +4,28 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.authlib.properties.Property;
+import net.minecraft.server.network.ServerPlayerEntity;
+import ru.lionarius.skinrestorer.util.WebUtils;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Type;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.UUID;
 
 public class ConfigManager {
 
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    private static final Type hashMapType = new TypeToken<HashMap<UUID, Property>>(){}.getType();
+    private static final String fileType = ".json";
 
-    private HashMap<UUID, Property> skinMap = null;
-    private final File configFile;
+    private final HashMap<UUID, Property> skinMap = new HashMap<>();
+    private final Path configPath;
 
-    public ConfigManager(File configFile) {
-        this.configFile = configFile;
-        if (!configFile.exists()) configFile.getParentFile().mkdirs();
-
-        try {
-            if (!configFile.createNewFile()) {
-                FileReader reader = new FileReader(configFile);
-                skinMap = gson.fromJson(reader, hashMapType);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        if (skinMap == null) skinMap = new HashMap<>();
+    public ConfigManager(Path configPath) {
+        this.configPath = configPath;
     }
 
-    public void addPlayerSkin(UUID player, Property skin) {
+    public void updatePlayerSkin(UUID player, Property skin) {
         skinMap.put(player, skin);
     }
 
@@ -44,13 +33,43 @@ public class ConfigManager {
         return skinMap.get(player);
     }
 
-    public void saveMap() {
+    public void onPlayerJoin(ServerPlayerEntity player) {
+        if(configPath.resolve(player.getUuid().toString() + fileType).toFile().exists()) {
+            try {
+                skinMap.put(player.getUuid(), gson.fromJson(new FileReader(configPath.resolve(player.getUuid().toString() + fileType).toFile()), Property.class));
+                return;
+            } catch (FileNotFoundException ignored) {}
+        }
+
         try {
-            FileWriter fileWriter = new FileWriter(configFile);
-            fileWriter.write(gson.toJson(skinMap));
-            fileWriter.close();
+            skinMap.put(player.getUuid(), WebUtils.getSkin(WebUtils.getUUID(player.getGameProfile().getName())));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    public void onPlayerDisconnect(ServerPlayerEntity player) {
+        try {
+
+            if(!configPath.toFile().exists()) configPath.toFile().mkdir();
+            configPath.resolve(player.getUuid().toString() + fileType).toFile().createNewFile();
+
+            FileWriter fileWriter = new FileWriter(configPath.resolve(player.getUuid().toString() + fileType).toFile());
+            fileWriter.write(gson.toJson(skinMap.get(player.getUuid())));
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        skinMap.remove(player.getUuid());
+    }
+
+//    public void saveMap() {
+//        try {
+//            FileWriter fileWriter = new FileWriter(configFile);
+//            fileWriter.write(gson.toJson(skinMap));
+//            fileWriter.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 }

@@ -12,9 +12,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import ru.lionarius.skinrestorer.SkinRestorer;
-import ru.lionarius.skinrestorer.util.WebUtils;
-
-import java.io.IOException;
 
 @Mixin(PlayerManager.class)
 public abstract class PlayerManagerMixin {
@@ -26,12 +23,20 @@ public abstract class PlayerManagerMixin {
 
     @Inject(method = "onPlayerConnect", at = @At(value = "HEAD"))
     private void onPlayerConnect(ClientConnection connection, ServerPlayerEntity player, CallbackInfo ci) {
-        try {
-            if (SkinRestorer.configManager.getPlayerSkin(player.getUuid()) == null)
-                SkinRestorer.configManager.addPlayerSkin(player.getUuid(), WebUtils.getSkin(WebUtils.getUUID(player.getGameProfile().getName())));
+        SkinRestorer.configManager.onPlayerJoin(player);
+        applySkin(player, SkinRestorer.configManager.getPlayerSkin(player.getUuid()));
+    }
 
-            applySkin(player, SkinRestorer.configManager.getPlayerSkin(player.getUuid()));
-        } catch (IOException ignored) { }
+    @Inject(method = "remove", at = @At("TAIL"))
+    private void remove(ServerPlayerEntity player, CallbackInfo ci) {
+        SkinRestorer.configManager.onPlayerDisconnect(player);
+    }
+
+    @Inject(method = "disconnectAllPlayers", at = @At("HEAD"))
+    private void disconnectAllPlayers(CallbackInfo ci) {
+        for (ServerPlayerEntity player : SkinRestorer.PLAYER_MANAGER.getPlayerList()) {
+            SkinRestorer.configManager.onPlayerDisconnect(player);
+        }
     }
 
     private static void applySkin(ServerPlayerEntity playerEntity, Property skin) {
