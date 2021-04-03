@@ -7,7 +7,6 @@
   "authors": ["Lionarius"],
   "contact": {},
   "license": "MIT",
-  "icon": "assets/SkinRestorer/icon.png",
   "environment": "server",
   "entrypoints": {
     "server": [

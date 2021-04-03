@@ -5,11 +5,11 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.command.argument.GameProfileArgumentType;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.LiteralText;
 import ru.lionarius.skinrestorer.SkinRestorer;
 import ru.lionarius.skinrestorer.util.WebUtils;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -32,17 +32,30 @@ public class SkinCommand {
 
     private static int setSkin(ServerCommandSource source, Collection<GameProfile> players, String skin_owner, boolean flag) {
         players.forEach(player -> {
+            ServerPlayerEntity playerEntity = source.getMinecraftServer().getPlayerManager().getPlayer(player.getId());
+
+            if(playerEntity == null) {
+                try {
+                    source.getPlayer().sendMessage(
+                            new LiteralText("§a[SkinRestorer]§f Specified player doesn't exist."), false);
+                    return;
+                } catch (Exception e) { return; }
+            }
+
             try {
                 SkinRestorer.configManager.updatePlayerSkin(player.getId(), WebUtils.getSkin(WebUtils.getUUID(skin_owner)));
 
                 if (!flag)
-                    SkinRestorer.PLAYER_MANAGER.getPlayer(player.getId()).sendMessage(
+                    playerEntity.sendMessage(
                             new LiteralText("§a[SkinRestorer]§f You need to reconnect to apply skin."), false);
                 else
-                    SkinRestorer.PLAYER_MANAGER.getPlayer(player.getId()).sendMessage(
+                    playerEntity.sendMessage(
                             new LiteralText("§a[SkinRestorer]§f Operator changed your skin. You need to reconnect to apply it."), false);
 
-            } catch (IOException ignored) { }
+            } catch (Exception e) {
+                playerEntity.sendMessage(
+                        new LiteralText("§a[SkinRestorer]§f Couldn't find skin with specified name."), false);
+            }
         });
 
         return 0;
